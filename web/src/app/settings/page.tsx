@@ -2,9 +2,12 @@
 
 import { useState, useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Settings, Check, X, AlertCircle } from 'lucide-react';
+import { Settings, Check, X, AlertCircle, Github } from 'lucide-react';
 import { Config, Stats } from '@/types';
 import { cn } from '@/lib/utils';
+import { TokenSetup } from '@/components/token-setup';
+import { LanguageSelector } from '@/components/language-selector';
+import { useTranslation } from '@/lib/i18n';
 
 // Mock data (temporary - will be replaced with API)
 const INITIAL_CONFIG: Config = {
@@ -131,11 +134,13 @@ function StatCard({
   current,
   limit,
   resetAt,
+  resetLabel,
 }: {
   title: string;
   current: number;
   limit: number;
   resetAt: string;
+  resetLabel: string;
 }) {
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
@@ -150,7 +155,7 @@ function StatCard({
         <ProgressBar current={current} limit={limit} />
 
         <div className="flex items-center gap-1 text-xs text-gray-500">
-          <span>次回リセット:</span>
+          <span>{resetLabel}</span>
           <time dateTime={resetAt}>{format(parseISO(resetAt), 'yyyy-MM-dd HH:mm')}</time>
         </div>
       </div>
@@ -179,6 +184,7 @@ function Alert({ type, children }: { type: 'success' | 'error'; children: React.
 }
 
 export default function SettingsPage() {
+  const t = useTranslation();
   const [formData, setFormData] = useState<Config>(INITIAL_CONFIG);
   const [errors, setErrors] = useState<Record<keyof Config, string | null>>({
     timezone: null,
@@ -222,7 +228,7 @@ export default function SettingsPage() {
       const hasErrors = Object.values(validationErrors).some(error => error !== null);
 
       if (hasErrors) {
-        setSaveMessage({ type: 'error', text: '入力内容に誤りがあります。修正してください。' });
+        setSaveMessage({ type: 'error', text: t.settings.system.validationError });
         return;
       }
 
@@ -232,10 +238,10 @@ export default function SettingsPage() {
 
       setTimeout(() => {
         setIsSaving(false);
-        setSaveMessage({ type: 'success', text: '設定を保存しました。' });
+        setSaveMessage({ type: 'success', text: t.settings.system.saved });
       }, 500);
     },
-    [formData]
+    [formData, t]
   );
 
   const handleReset = useCallback(() => {
@@ -257,23 +263,39 @@ export default function SettingsPage() {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <Settings className="w-8 h-8 text-gray-900" />
-            <h1 className="text-3xl font-bold text-gray-900">設定</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{t.settings.title}</h1>
           </div>
-          <p className="text-sm text-gray-600">システムの動作設定を変更できます</p>
+          <p className="text-sm text-gray-600">{t.settings.subtitle}</p>
         </div>
 
         {/* Save Message */}
         {saveMessage && <Alert type={saveMessage.type}>{saveMessage.text}</Alert>}
 
+        {/* Language Settings */}
+        <section className="mb-8">
+          <LanguageSelector />
+        </section>
+
+        {/* GitHub PAT Settings */}
+        <section className="mb-8">
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Github className="w-5 h-5" />
+              {t.settings.github.title}
+            </h2>
+            <TokenSetup />
+          </div>
+        </section>
+
         {/* Config Form */}
         <section className="mb-8">
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">システム設定</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.settings.system.title}</h2>
 
             <form onSubmit={handleSave}>
               <div className="space-y-4">
                 <FormField
-                  label="タイムゾーン"
+                  label={t.settings.system.timezone}
                   name="timezone"
                   value={formData.timezone}
                   error={errors.timezone}
@@ -281,7 +303,7 @@ export default function SettingsPage() {
                 />
 
                 <FormField
-                  label="実行間隔（分）"
+                  label={t.settings.system.interval}
                   name="interval_minutes"
                   type="number"
                   min={5}
@@ -292,7 +314,7 @@ export default function SettingsPage() {
                 />
 
                 <FormField
-                  label="日次投稿上限"
+                  label={t.settings.system.dailyLimit}
                   name="daily_limit"
                   type="number"
                   min={1}
@@ -303,7 +325,7 @@ export default function SettingsPage() {
                 />
 
                 <FormField
-                  label="月次投稿上限"
+                  label={t.settings.system.monthlyLimit}
                   name="monthly_limit"
                   type="number"
                   min={1}
@@ -314,7 +336,7 @@ export default function SettingsPage() {
                 />
 
                 <FormField
-                  label="リトライ上限回数"
+                  label={t.settings.system.retryMax}
                   name="retry_max"
                   type="number"
                   min={1}
@@ -338,12 +360,12 @@ export default function SettingsPage() {
                     {isSaving ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                        保存中...
+                        {t.settings.system.saving}
                       </>
                     ) : (
                       <>
                         <Check className="w-4 h-4 mr-2" />
-                        保存
+                        {t.common.save}
                       </>
                     )}
                   </button>
@@ -354,7 +376,7 @@ export default function SettingsPage() {
                     className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
                     <X className="w-4 h-4 mr-2" />
-                    リセット
+                    {t.settings.system.reset}
                   </button>
                 </div>
               </div>
@@ -365,21 +387,23 @@ export default function SettingsPage() {
         {/* Stats */}
         <section>
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">利用状況</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.settings.usage.title}</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <StatCard
-                title="日次投稿数"
+                title={t.settings.usage.daily}
                 current={MOCK_STATS.daily_count}
                 limit={formData.daily_limit}
                 resetAt={MOCK_STATS.daily_reset_at}
+                resetLabel={t.settings.usage.nextReset}
               />
 
               <StatCard
-                title="月次投稿数"
+                title={t.settings.usage.monthly}
                 current={MOCK_STATS.monthly_count}
                 limit={formData.monthly_limit}
                 resetAt={MOCK_STATS.monthly_reset_at}
+                resetLabel={t.settings.usage.nextReset}
               />
             </div>
           </div>

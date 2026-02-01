@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, FormEvent, ChangeEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Calendar,
@@ -8,10 +9,14 @@ import {
   Plus,
   Trash2,
   Check,
-  X as XIcon
+  X as XIcon,
+  Loader2,
+  AlertCircle,
+  Settings,
 } from 'lucide-react';
 import { format, addHours, parseISO } from 'date-fns';
 import type { PostType, MediaItem, ThreadItem, RepeatConfig, Post } from '@/types';
+import { useCreatePost } from '@/hooks/useCreatePost';
 
 interface PostFormState {
   postType: PostType;
@@ -30,6 +35,7 @@ const MAX_MEDIA = 4;
 
 export default function PostForm() {
   const router = useRouter();
+  const { createPost, isCreating, error: apiError, isConfigured } = useCreatePost();
 
   // Initialize scheduledAt with current time + 1 hour
   const defaultScheduledAt = format(addHours(new Date(), 1), "yyyy-MM-dd'T'HH:mm");
@@ -295,7 +301,7 @@ export default function PostForm() {
   };
 
   // Handle form submission
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -308,13 +314,24 @@ export default function PostForm() {
       return;
     }
 
-    const post = generatePost();
+    const postData = generatePost();
 
-    // TODO: Send to API
-    console.log('Created post:', post);
+    // Send to API
+    const result = await createPost({
+      type: postData.type,
+      status: postData.status,
+      scheduled_at: postData.scheduled_at,
+      text: postData.text,
+      media: postData.media,
+      thread: postData.thread,
+      target_tweet_id: postData.target_tweet_id,
+      repeat: postData.repeat,
+    });
 
-    // Redirect to dashboard
-    router.push('/');
+    if (result) {
+      // Redirect to dashboard on success
+      router.push('/');
+    }
   };
 
   // Handle cancel
@@ -322,8 +339,47 @@ export default function PostForm() {
     router.push('/');
   };
 
+  // Show setup guide if not configured
+  if (!isConfigured) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <div className="flex items-start gap-4">
+            <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-yellow-800 mb-2">
+                GitHub連携が必要です
+              </h2>
+              <p className="text-sm text-yellow-700 mb-4">
+                投稿を作成するために、GitHub Personal Access Token (PAT) の設定が必要です。
+                設定画面からトークンを登録してください。
+              </p>
+              <Link
+                href="/settings"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-md font-medium hover:bg-yellow-700 transition-colors"
+              >
+                <Settings className="w-4 h-4" />
+                設定画面へ
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-6">
+      {/* API Error */}
+      {apiError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+            <p className="text-sm text-red-700">{apiError}</p>
+          </div>
+        </div>
+      )}
+
       {/* Post Type Selector */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -775,18 +831,28 @@ export default function PostForm() {
         <button
           type="button"
           onClick={handleCancel}
-          className="flex items-center gap-2 px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          disabled={isCreating}
+          className="flex items-center gap-2 px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <XIcon className="w-4 h-4" />
           キャンセル
         </button>
         <button
           type="submit"
-          disabled={Object.keys(state.errors).length > 0}
+          disabled={Object.keys(state.errors).length > 0 || isCreating}
           className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
-          <Check className="w-4 h-4" />
-          予約投稿を作成
+          {isCreating ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              作成中...
+            </>
+          ) : (
+            <>
+              <Check className="w-4 h-4" />
+              予約投稿を作成
+            </>
+          )}
         </button>
       </div>
     </form>
