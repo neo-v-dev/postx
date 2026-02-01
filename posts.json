@@ -1,0 +1,27 @@
+{
+  "config": {
+    "timezone": "Asia/Tokyo",
+    "interval_minutes": 30,
+    "daily_limit": 50,
+    "monthly_limit": 1500,
+    "retry_max": 3
+  },
+  "posts": [
+    {
+      "id": "909015c2-0c68-4cf9-95f7-8823ee3d6287",
+      "type": "tweet",
+      "status": "pending",
+      "scheduled_at": "2026-02-01T11:30:00.000Z",
+      "created_at": "2026-02-01T10:27:50.171Z",
+      "updated_at": "2026-02-01T10:27:50.171Z",
+      "text": "test\n"
+    }
+  ],
+  "history": [],
+  "stats": {
+    "daily_count": 0,
+    "daily_reset_at": "2026-02-01T10:27:50.171Z",
+    "monthly_count": 0,
+    "monthly_reset_at": "2026-02-01T10:27:50.171Z"
+  }
+}
