@@ -1,0 +1,49 @@
+name: Scheduled Post
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no actual posting)'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: scheduler/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r scheduler/requirements.txt
+
+      - name: Run scheduler
+        env:
+          X_CLIENT_ID: ${{ secrets.X_CLIENT_ID }}
+          X_CLIENT_SECRET: ${{ secrets.X_CLIENT_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_REFRESH_TOKEN: ${{ secrets.X_REFRESH_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        run: python -m scheduler.main
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/posts.json
+          git diff --staged --quiet || git commit -m "chore: update posts status [skip ci]"
+          git push

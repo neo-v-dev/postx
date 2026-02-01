@@ -1,0 +1,52 @@
+name: Validate PR
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'data/posts.json'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pydantic
+        run: pip install pydantic
+
+      - name: Validate posts.json schema
+        run: |
+          python -c "
+          import json
+          from datetime import datetime
+
+          with open('data/posts.json') as f:
+              data = json.load(f)
+
+          assert 'config' in data, 'Missing config'
+          assert 'posts' in data, 'Missing posts'
+          assert 'history' in data, 'Missing history'
+          assert 'stats' in data, 'Missing stats'
+
+          config = data['config']
+          assert 'timezone' in config, 'Missing timezone'
+          assert 'interval_minutes' in config, 'Missing interval_minutes'
+          assert config['interval_minutes'] in [5, 15, 30, 60], 'Invalid interval'
+
+          for post in data['posts']:
+              assert 'id' in post, 'Post missing id'
+              assert 'type' in post, 'Post missing type'
+              assert post['type'] in ['tweet', 'thread', 'repost'], f'Invalid type'
+              assert 'status' in post, 'Post missing status'
+              assert 'scheduled_at' in post, 'Post missing scheduled_at'
+              datetime.fromisoformat(post['scheduled_at'].replace('Z', '+00:00'))
+
+          print('Validation passed!')
+          "

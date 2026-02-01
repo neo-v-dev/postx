@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "postx"
+version = "0.1.0"
+description = "X (Twitter) scheduled posting system"
+requires-python = ">=3.11"
+dependencies = [
+    "tweepy>=4.14.0",
+    "python-dateutil>=2.8.2",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["scheduler/tests"]
+python_files = ["test_*.py"]
