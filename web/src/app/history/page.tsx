@@ -1,184 +1,12 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
+import Link from 'next/link';
 import { format, parseISO } from 'date-fns';
-import { Filter, Calendar, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { Filter, Calendar, ChevronLeft, ChevronRight, ExternalLink, AlertCircle, Loader2, Settings } from 'lucide-react';
 import { HistoryEntry } from '@/types';
 import { cn } from '@/lib/utils';
-
-// Mock data (temporary - will be replaced with API)
-const MOCK_HISTORY: HistoryEntry[] = [
-  {
-    id: '1',
-    post_id: 'post-001',
-    action: 'posted',
-    executed_at: '2026-01-31T10:30:00Z',
-    tweet_id: '1234567890',
-  },
-  {
-    id: '2',
-    post_id: 'post-002',
-    action: 'failed',
-    executed_at: '2026-01-31T09:15:00Z',
-    error: 'Rate limit exceeded',
-  },
-  {
-    id: '3',
-    post_id: 'post-003',
-    action: 'cancelled',
-    executed_at: '2026-01-30T15:45:00Z',
-  },
-  {
-    id: '4',
-    post_id: 'post-004',
-    action: 'posted',
-    executed_at: '2026-01-30T14:20:00Z',
-    tweet_id: '1234567891',
-  },
-  {
-    id: '5',
-    post_id: 'post-005',
-    action: 'failed',
-    executed_at: '2026-01-30T11:00:00Z',
-    error: 'Authentication failed',
-  },
-  {
-    id: '6',
-    post_id: 'post-006',
-    action: 'posted',
-    executed_at: '2026-01-29T16:30:00Z',
-    tweet_id: '1234567892',
-  },
-  {
-    id: '7',
-    post_id: 'post-007',
-    action: 'cancelled',
-    executed_at: '2026-01-29T10:15:00Z',
-  },
-  {
-    id: '8',
-    post_id: 'post-008',
-    action: 'posted',
-    executed_at: '2026-01-28T18:45:00Z',
-    tweet_id: '1234567893',
-  },
-  {
-    id: '9',
-    post_id: 'post-009',
-    action: 'failed',
-    executed_at: '2026-01-28T12:30:00Z',
-    error: 'Network error',
-  },
-  {
-    id: '10',
-    post_id: 'post-010',
-    action: 'posted',
-    executed_at: '2026-01-27T09:00:00Z',
-    tweet_id: '1234567894',
-  },
-  {
-    id: '11',
-    post_id: 'post-011',
-    action: 'posted',
-    executed_at: '2026-01-26T17:20:00Z',
-    tweet_id: '1234567895',
-  },
-  {
-    id: '12',
-    post_id: 'post-012',
-    action: 'failed',
-    executed_at: '2026-01-26T14:10:00Z',
-    error: 'Invalid media format',
-  },
-  {
-    id: '13',
-    post_id: 'post-013',
-    action: 'cancelled',
-    executed_at: '2026-01-25T11:30:00Z',
-  },
-  {
-    id: '14',
-    post_id: 'post-014',
-    action: 'posted',
-    executed_at: '2026-01-25T08:45:00Z',
-    tweet_id: '1234567896',
-  },
-  {
-    id: '15',
-    post_id: 'post-015',
-    action: 'posted',
-    executed_at: '2026-01-24T16:00:00Z',
-    tweet_id: '1234567897',
-  },
-  {
-    id: '16',
-    post_id: 'post-016',
-    action: 'failed',
-    executed_at: '2026-01-24T13:20:00Z',
-    error: 'Duplicate content',
-  },
-  {
-    id: '17',
-    post_id: 'post-017',
-    action: 'posted',
-    executed_at: '2026-01-23T10:15:00Z',
-    tweet_id: '1234567898',
-  },
-  {
-    id: '18',
-    post_id: 'post-018',
-    action: 'cancelled',
-    executed_at: '2026-01-22T15:30:00Z',
-  },
-  {
-    id: '19',
-    post_id: 'post-019',
-    action: 'posted',
-    executed_at: '2026-01-22T09:45:00Z',
-    tweet_id: '1234567899',
-  },
-  {
-    id: '20',
-    post_id: 'post-020',
-    action: 'failed',
-    executed_at: '2026-01-21T17:00:00Z',
-    error: 'Server error',
-  },
-  {
-    id: '21',
-    post_id: 'post-021',
-    action: 'posted',
-    executed_at: '2026-01-21T11:30:00Z',
-    tweet_id: '1234567900',
-  },
-  {
-    id: '22',
-    post_id: 'post-022',
-    action: 'posted',
-    executed_at: '2026-01-20T14:15:00Z',
-    tweet_id: '1234567901',
-  },
-  {
-    id: '23',
-    post_id: 'post-023',
-    action: 'cancelled',
-    executed_at: '2026-01-19T16:45:00Z',
-  },
-  {
-    id: '24',
-    post_id: 'post-024',
-    action: 'posted',
-    executed_at: '2026-01-19T10:00:00Z',
-    tweet_id: '1234567902',
-  },
-  {
-    id: '25',
-    post_id: 'post-025',
-    action: 'failed',
-    executed_at: '2026-01-18T13:30:00Z',
-    error: 'Rate limit exceeded',
-  },
-];
+import { useHistory } from '@/hooks/useHistory';
 
 function filterHistory(
   history: HistoryEntry[],
@@ -291,6 +119,7 @@ function HistoryEntryCard({ entry }: { entry: HistoryEntry }) {
 }
 
 export default function HistoryPage() {
+  const { history, isLoading, error, isConfigured } = useHistory();
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [currentPage, setCurrentPage] = useState(1);
@@ -298,8 +127,8 @@ export default function HistoryPage() {
   const ITEMS_PER_PAGE = 20;
 
   const filteredHistory = useMemo(() => {
-    return filterHistory(MOCK_HISTORY, actionFilter, dateRange);
-  }, [actionFilter, dateRange]);
+    return filterHistory(history, actionFilter, dateRange);
+  }, [history, actionFilter, dateRange]);
 
   const paginatedHistory = useMemo(() => {
     return paginate(filteredHistory, currentPage, ITEMS_PER_PAGE);
@@ -329,6 +158,87 @@ export default function HistoryPage() {
   const handleNextPage = useCallback(() => {
     setCurrentPage(prev => Math.min(totalPages, prev + 1));
   }, [totalPages]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <main className="min-h-screen p-8 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">履歴</h1>
+          </div>
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+            <span className="ml-3 text-gray-600">読み込み中...</span>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Not configured state
+  if (!isConfigured) {
+    return (
+      <main className="min-h-screen p-8 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">履歴</h1>
+          </div>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <div className="flex items-start gap-4">
+              <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold text-yellow-800 mb-2">
+                  設定が必要です
+                </h2>
+                <p className="text-sm text-yellow-700 mb-4">
+                  履歴を表示するには、GitHubリポジトリの設定が必要です。
+                </p>
+                <Link
+                  href="/settings"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-md font-medium hover:bg-yellow-700 transition-colors"
+                >
+                  <Settings className="w-4 h-4" />
+                  設定へ移動
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <main className="min-h-screen p-8 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">履歴</h1>
+          </div>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <div className="flex items-start gap-4">
+              <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold text-red-800 mb-2">
+                  エラーが発生しました
+                </h2>
+                <p className="text-sm text-red-700 mb-4">{error}</p>
+                <Link
+                  href="/settings"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md font-medium hover:bg-red-700 transition-colors"
+                >
+                  <Settings className="w-4 h-4" />
+                  設定を確認
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen p-8 bg-gray-50">
