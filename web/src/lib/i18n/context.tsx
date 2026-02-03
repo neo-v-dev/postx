@@ -13,26 +13,22 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-function getInitialLanguage(): Language {
-  if (typeof window === 'undefined') return 'ja';
-
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored && (stored === 'ja' || stored === 'en')) {
-    return stored;
-  }
-
-  // Detect browser language
-  const browserLang = navigator.language.split('-')[0];
-  return browserLang === 'ja' ? 'ja' : 'en';
-}
-
 export function LanguageProvider({ children }: { children: ReactNode }) {
+  // Initialize with fixed value to prevent hydration mismatch
   const [language, setLanguageState] = useState<Language>('ja');
-  const [mounted, setMounted] = useState(false);
 
+  // Load from localStorage/navigator only on client side
   useEffect(() => {
-    setLanguageState(getInitialLanguage());
-    setMounted(true);
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored && (stored === 'ja' || stored === 'en')) {
+      setLanguageState(stored);
+      return;
+    }
+
+    // Detect browser language
+    const browserLang = navigator.language.split('-')[0];
+    const detected = browserLang === 'ja' ? 'ja' : 'en';
+    setLanguageState(detected);
   }, []);
 
   const setLanguage = useCallback((lang: Language) => {
@@ -41,15 +37,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const t = translations[language];
-
-  // Prevent hydration mismatch by not rendering until mounted
-  if (!mounted) {
-    return (
-      <LanguageContext.Provider value={{ language: 'ja', setLanguage, t: translations.ja }}>
-        {children}
-      </LanguageContext.Provider>
-    );
-  }
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
