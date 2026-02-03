@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
-  basePath: process.env.NODE_ENV === 'production' ? '/x-scheduler' : '',
+  basePath: process.env.NODE_ENV === 'production' ? '/postx' : '',
   images: {
     unoptimized: true,
   },
