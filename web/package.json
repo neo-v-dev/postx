@@ -17,7 +17,6 @@
     "@octokit/rest": "^20.0.0",
     "next-auth": "^4.24.0",
     "date-fns": "^3.0.0",
-    "date-fns-tz": "^2.0.0",
     "lucide-react": "^0.300.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
